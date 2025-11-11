@@ -86,37 +86,24 @@ src/
 
 ### テストディレクトリの配置
 
-**方式1: tests/ディレクトリに集約**
+**推奨構造**:
 ```
 project/
 ├── src/
 │   └── services/
 │       └── TaskService.ts
 └── tests/
-    └── unit/
-        └── services/
-            └── TaskService.test.ts
+    ├── unit/
+    │   └── services/
+    │       └── TaskService.test.ts
+    ├── integration/
+    └── e2e/
 ```
 
-**メリット**:
-- テストコードが分離されて整理しやすい
-- 本番ビルドから除外しやすい
-
-**方式2: ソースコードの隣に配置**
-```
-src/
-└── services/
-    ├── TaskService.ts
-    └── TaskService.test.ts
-```
-
-**メリット**:
-- 実装とテストの対応が明確
-- ファイル移動時にテストも一緒に移動
-
-**推奨**: プロジェクト規模に応じて選択
-- 小規模: 方式2
-- 中〜大規模: 方式1
+**理由**:
+- テストコードが本番コードと分離
+- ビルド時にテストを除外しやすい
+- テストタイプごとに整理可能
 
 ## 命名規則のベストプラクティス
 
@@ -288,56 +275,31 @@ export class UserService {
 
 ## スケーリング戦略
 
-### 段階的な構造化
+### 推奨構造
 
-**フェーズ1: 小規模 (ファイル数 < 20)**
+**標準パターン**:
 ```
 src/
-├── index.ts
-├── TaskService.ts
-├── TaskRepository.ts
-└── Task.ts
-```
-
-シンプルで十分。
-
-**フェーズ2: 中規模 (ファイル数 20-100)**
-```
-src/
+├── commands/
+│   └── TaskCommand.ts
 ├── services/
 │   ├── TaskService.ts
 │   └── UserService.ts
 ├── repositories/
 │   ├── TaskRepository.ts
 │   └── UserRepository.ts
-└── types/
-    ├── Task.ts
-    └── User.ts
+├── types/
+│   ├── Task.ts
+│   └── User.ts
+├── validators/
+│   └── TaskValidator.ts
+└── index.ts
 ```
 
-レイヤー分割を導入。
-
-**フェーズ3: 大規模 (ファイル数 > 100)**
-```
-src/
-├── task/
-│   ├── services/
-│   │   ├── TaskService.ts
-│   │   └── SubtaskService.ts
-│   ├── repositories/
-│   │   └── TaskRepository.ts
-│   └── types/
-│       └── Task.ts
-└── user/
-    ├── services/
-    │   └── UserService.ts
-    ├── repositories/
-    │   └── UserRepository.ts
-    └── types/
-        └── User.ts
-```
-
-機能ベースで分割。
+**理由**:
+- レイヤーごとに責務が明確
+- 後からのリファクタリングが不要
+- チーム開発で統一しやすい
 
 ### モジュール分離のタイミング
 

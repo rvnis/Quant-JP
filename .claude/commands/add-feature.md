@@ -36,7 +36,7 @@ Grep('[機能に関連するキーワード]', 'src/')
 
 ## ステップ5: 実装
 
-**implementationスキル**を使用してください(`/skill implementation`で起動)
+**development-guidelinesスキル**を使用してください
 
 1. `tasklist.md`に従って実装
 2. スキルのコーディング規約に従う
@@ -46,12 +46,8 @@ Grep('[機能に関連するキーワード]', 'src/')
 
 implementation-validatorサブエージェントを起動して品質検証。
 
-```bash
-Task(
-  subagent_type="implementation-validator",
-  description="実装検証",
-  prompt="[実装したファイルのパス]の品質を検証してください"
-)
+```
+@agent-implementation-validator [実装したファイルのパス]の品質を検証してください
 ```
 
 ## ステップ7: テスト

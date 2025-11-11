@@ -1,4 +1,4 @@
-# 開発ガイドライン作成ガイド
+# プロセスガイド (Process Guide)
 
 ## 基本原則
 
@@ -52,187 +52,33 @@ const repo = new Repository();
 - E2Eテスト: 主要フロー100%
 ```
 
-## コーディング規約の策定
+## Git運用ルール
 
-### 命名規則の定義
+### ブランチ戦略（Git Flow採用）
 
-**階層的に定義**:
+**Git Flowとは**:
+Vincent Driessenが提唱した、機能開発・リリース・ホットフィックスを体系的に管理するブランチモデル。明確な役割分担により、チーム開発での並行作業と安定したリリースを実現します。
 
-1. **言語・環境全体の規則**
-```typescript
-// TypeScript全般
-- 変数・関数: camelCase
-- クラス・インターフェース: PascalCase
-- 定数: UPPER_SNAKE_CASE
+**ブランチ構成**:
+```
+main (本番環境)
+└── develop (開発・統合環境)
+    ├── feature/* (新機能開発)
+    ├── fix/* (バグ修正)
+    └── release/* (リリース準備)※必要に応じて
 ```
 
-2. **プロジェクト固有の規則**
-```typescript
-// このプロジェクトの規則
-- サービスクラス: [名詞]Service (例: TaskService)
-- リポジトリクラス: [名詞]Repository (例: TaskRepository)
-- バリデーター関数: validate[対象] (例: validateEmail)
-```
+**運用ルール**:
+- **main**: 本番リリース済みの安定版コードのみを保持。タグでバージョン管理
+- **develop**: 次期リリースに向けた最新の開発コードを統合。CIでの自動テスト実施
+- **feature/\*、fix/\***: developから分岐し、作業完了後にPRでdevelopへマージ
+- **直接コミット禁止**: すべてのブランチでPRレビューを必須とし、コード品質を担保
+- **マージ方針**: feature→develop は squash merge、develop→main は merge commit を推奨
 
-### フォーマットの統一
-
-**自動化を推奨**:
-```json
-// .prettierrc
-{
-  "semi": true,
-  "singleQuote": true,
-  "tabWidth": 2,
-  "printWidth": 100
-}
-```
-
-**理由**: 手動でのフォーマット統一は労力がかかり、レビュー時の議論も増える
-
-### コメントの指針
-
-**良いコメントの条件**:
-
-1. **理由を説明する**
-```typescript
-// ✅ 良い例
-// タイムゾーンの違いを考慮して、UTCで保存
-const createdAt = new Date().toISOString();
-
-// ❌ 悪い例
-// 日付を取得
-const createdAt = new Date().toISOString();
-```
-
-2. **複雑なロジックを説明する**
-```typescript
-// ✅ 良い例
-// Kadaneのアルゴリズムで最大部分配列和を計算
-// 時間計算量: O(n), 空間計算量: O(1)
-function maxSubarraySum(arr: number[]): number {
-  let maxSoFar = arr[0];
-  let maxEndingHere = arr[0];
-  // ...
-}
-```
-
-3. **TODO・FIXMEを活用する**
-```typescript
-// TODO: キャッシュ機能を実装 (Issue #123)
-// FIXME: 大量データでパフォーマンス劣化 (Issue #456)
-// HACK: 一時的な回避策、リファクタリング必要
-```
-
-### エラーハンドリングの標準化
-
-**エラー分類の定義**:
-
-```typescript
-// 1. ドメインエラー: ビジネスロジックのエラー
-class ValidationError extends Error {
-  constructor(
-    message: string,
-    public field: string,
-    public value: unknown
-  ) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
-
-// 2. インフラエラー: 外部システムのエラー
-class DatabaseError extends Error {
-  constructor(message: string, public cause?: Error) {
-    super(message);
-    this.name = 'DatabaseError';
-    this.cause = cause;
-  }
-}
-
-// 3. システムエラー: プログラムのバグ
-class InvariantError extends Error {
-  constructor(message: string) {
-    super(`内部エラー: ${message}`);
-    this.name = 'InvariantError';
-  }
-}
-```
-
-**エラーハンドリングパターン**:
-
-```typescript
-// パターン1: リトライ可能なエラー
-async function fetchWithRetry<T>(
-  fn: () => Promise<T>,
-  maxRetries = 3
-): Promise<T> {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      await sleep(1000 * Math.pow(2, i)); // 指数バックオフ
-    }
-  }
-  throw new Error('Unreachable');
-}
-
-// パターン2: フォールバック処理
-function getConfigValue(key: string): string {
-  try {
-    return readConfig(key);
-  } catch (error) {
-    logger.warn(`設定値 ${key} の読み込み失敗、デフォルト値を使用`);
-    return DEFAULT_VALUES[key];
-  }
-}
-
-// パターン3: エラーの変換
-async function createTask(data: TaskData): Promise<Task> {
-  try {
-    return await repository.save(data);
-  } catch (error) {
-    if (error instanceof SqlError && error.code === 'UNIQUE_VIOLATION') {
-      throw new ValidationError('タスクIDが重複しています', 'id', data.id);
-    }
-    throw new DatabaseError('タスクの保存に失敗しました', error);
-  }
-}
-```
-
-## Git運用ルールの設計
-
-### ブランチ戦略の選択
-
-**プロジェクト規模別の推奨**:
-
-**小規模 (1-3人)**:
-```
-main (本番)
-└── feature branches (機能開発)
-```
-- シンプルで十分
-- mainに直接マージ
-
-**中規模 (4-10人)**:
-```
-main (本番)
-└── develop (開発)
-    └── feature/fix branches
-```
-- Git Flowの簡易版
-- developでの統合テスト後にmainへマージ
-
-**大規模 (10人以上)**:
-```
-main (本番)
-├── release/v1.x (リリースブランチ)
-└── develop (開発)
-    ├── feature branches
-    └── fix branches
-```
-- 完全なGit Flow
-- リリースブランチで最終調整
+**Git Flowのメリット**:
+- ブランチの役割が明確で、複数人での並行開発がしやすい
+- 本番環境(main)が常にクリーンな状態に保たれる
+- 緊急対応時はhotfixブランチで迅速に対応可能（必要に応じて導入）
 
 ### コミットメッセージの規約
 
@@ -306,26 +152,13 @@ BREAKING CHANGE: Task型にpriority必須フィールド追加
 - [変更点2]
 
 ## テスト
-- [ ] 既存のテストがパス
-- [ ] 新しいテストを追加
+### 実施したテスト
+- [ ] ユニットテスト追加
+- [ ] 統合テスト追加
 - [ ] 手動テスト実施
 
-### テストケース
-- [ケース1]
-- [ケース2]
-
-## スクリーンショット
-[該当する場合]
-
-## チェックリスト
-- [ ] コーディング規約に従っている
-- [ ] Lintエラーがない
-- [ ] 型チェックがパス
-- [ ] ドキュメントを更新した
-- [ ] CHANGELOG.mdを更新した (該当する場合)
-
-## 影響範囲
-[この変更が影響する範囲]
+### テスト結果
+[テスト結果の説明]
 
 ## 関連Issue
 Closes #[番号]
@@ -335,7 +168,7 @@ Refs #[番号]
 [レビュアーに特に見てほしい点]
 ```
 
-## テスト戦略の立案
+## テスト戦略
 
 ### テストピラミッド
 
@@ -354,54 +187,32 @@ Refs #[番号]
 - 統合テスト: 20%
 - E2Eテスト: 10%
 
-### テストの書き方ガイドライン
+### テストの書き方
 
-**AAA (Arrange-Act-Assert) パターン**:
-
-```typescript
-it('タスクを作成できる', async () => {
-  // Arrange (準備)
-  const service = new TaskService(mockRepository);
-  const taskData = {
-    title: 'テストタスク',
-    description: 'テスト用の説明',
-  };
-
-  // Act (実行)
-  const result = await service.create(taskData);
-
-  // Assert (検証)
-  expect(result.id).toBeDefined();
-  expect(result.title).toBe('テストタスク');
-  expect(result.description).toBe('テスト用の説明');
-});
-```
-
-**Given-When-Then パターン (BDD)**:
+**Given-When-Then パターン**:
 
 ```typescript
 describe('TaskService', () => {
   describe('タスク作成', () => {
     it('正常なデータの場合、タスクを作成できる', async () => {
-      // Given: サービスとデータが準備されている
+      // Given: 準備
       const service = new TaskService(mockRepository);
       const validData = { title: 'テスト' };
 
-      // When: タスクを作成する
+      // When: 実行
       const result = await service.create(validData);
 
-      // Then: タスクが正しく作成される
+      // Then: 検証
       expect(result.id).toBeDefined();
       expect(result.title).toBe('テスト');
     });
 
     it('タイトルが空の場合、ValidationErrorをスローする', async () => {
-      // Given: サービスと不正なデータが準備されている
+      // Given: 準備
       const service = new TaskService(mockRepository);
       const invalidData = { title: '' };
 
-      // When: タスクを作成しようとする
-      // Then: ValidationErrorがスローされる
+      // When/Then: 実行と検証
       await expect(
         service.create(invalidData)
       ).rejects.toThrow(ValidationError);
@@ -410,7 +221,7 @@ describe('TaskService', () => {
 });
 ```
 
-### カバレッジ目標の設定
+### カバレッジ目標
 
 **測定可能な目標**:
 
@@ -439,31 +250,7 @@ describe('TaskService', () => {
 - UI層は低めでも許容
 - 100%を目指さない (コストと効果のバランス)
 
-### モックの使い方
-
-**原則**:
-- **外部依存をモック**: API、DB、ファイルシステム
-- **ビジネスロジックは実装**: 複雑なモックはバグの温床
-
-**良いモックの例**:
-
-```typescript
-// インターフェースに基づくモック
-const mockRepository: ITaskRepository = {
-  save: jest.fn((task) => Promise.resolve(task)),
-  findById: jest.fn((id) => Promise.resolve(mockTask)),
-  findAll: jest.fn(() => Promise.resolve([mockTask])),
-  delete: jest.fn(() => Promise.resolve()),
-};
-
-// 特定のテストケースでの動作変更
-mockRepository.findById = jest.fn((id) => {
-  if (id === 'existing-id') return Promise.resolve(mockTask);
-  return Promise.resolve(null);
-});
-```
-
-## コードレビュープロセスの確立
+## コードレビュープロセス
 
 ### レビューの目的
 
@@ -529,7 +316,7 @@ const result = ids.map(id => taskMap.get(id));
 
 **原則**: 大規模PRは避け、分割する
 
-## 自動化の推進(該当する場合)
+## 自動化の推進
 
 ### 品質チェックの自動化
 
@@ -547,13 +334,9 @@ const result = ids.map(id => taskMap.get(id));
 
 ## チェックリスト
 
-- [ ] コーディング規約が具体例付きで定義されている
-- [ ] 命名規則が明確である
-- [ ] エラーハンドリングの方針が定義されている
 - [ ] ブランチ戦略が決まっている
 - [ ] コミットメッセージ規約が明確である
 - [ ] PRテンプレートが用意されている
 - [ ] テストの種類とカバレッジ目標が設定されている
 - [ ] コードレビュープロセスが定義されている
 - [ ] CI/CDパイプラインが構築されている
-- [ ] 開発環境のセットアップ手順が明確である

@@ -1,4 +1,4 @@
-# コーディング規約 (Coding Standards)
+# 実装ガイド (Implementation Guide)
 
 ## TypeScript/JavaScript 規約
 
@@ -437,12 +437,10 @@ for (const item of items) {
 }
 ```
 
-### メモ化(該当する場合)
-
-**原則**: 重複計算が多い場合、結果をキャッシュして再利用する
+### メモ化
 
 ```typescript
-// 例: 計算結果のキャッシュ
+// 計算結果のキャッシュ
 const cache = new Map<string, Result>();
 
 function expensiveCalculation(input: string): Result {
@@ -458,23 +456,23 @@ function expensiveCalculation(input: string): Result {
 
 ## テストコード
 
-### テストの構造 (AAA パターン)
+### テストの構造 (Given-When-Then)
 
 ```typescript
 describe('TaskService', () => {
   describe('create', () => {
     it('正常なデータでタスクを作成できる', async () => {
-      // Arrange (準備)
+      // Given: 準備
       const service = new TaskService(mockRepository);
       const taskData = {
         title: 'テストタスク',
         description: 'テスト用の説明',
       };
 
-      // Act (実行)
+      // When: 実行
       const result = await service.create(taskData);
 
-      // Assert (検証)
+      // Then: 検証
       expect(result).toBeDefined();
       expect(result.id).toBeDefined();
       expect(result.title).toBe('テストタスク');
@@ -483,11 +481,11 @@ describe('TaskService', () => {
     });
 
     it('タイトルが空の場合ValidationErrorをスローする', async () => {
-      // Arrange
+      // Given: 準備
       const service = new TaskService(mockRepository);
       const invalidData = { title: '' };
 
-      // Act & Assert
+      // When/Then: 実行と検証
       await expect(
         service.create(invalidData)
       ).rejects.toThrow(ValidationError);
