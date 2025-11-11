@@ -1,7 +1,7 @@
 {
-  "name": "spec-driven-dev-template",
+  "name": "claude-code-book-chapter7",
   "image": "mcr.microsoft.com/devcontainers/base:bookworm",
-  "workspaceFolder": "/workspaces/spec-driven-dev-template",
+  "workspaceFolder": "/workspaces/claude-code-book-chapter7",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
