@@ -33,7 +33,7 @@ graph TB
 | 分類 | 技術 | 選定理由 |
 |------|------|----------|
 | 言語 | TypeScript 5.x | 型安全性、開発効率、エコシステムの充実 |
-| ランタイム | Node.js 18+ | クロスプラットフォーム対応、npmエコシステム |
+| ランタイム | Node.js v24.11.0 (LTS, 最小要件: 18+) | クロスプラットフォーム対応、npmエコシステム |
 | CLIフレームワーク | Commander.js | シンプル、学習コストが低い、十分な機能 |
 | Git連携 | simple-git | Node.jsで使いやすい、安定している |
 | テーブル表示 | cli-table3 | カスタマイズ性が高い、Unicode対応 |
@@ -183,7 +183,7 @@ interface ListOptions {
 **責務**:
 - Gitリポジトリの存在確認
 - ブランチの作成と切り替え
-- ブランチ名のサニタイズ
+- タスクIDとタイトルからブランチ名を生成
 
 **インターフェース**:
 ```typescript
@@ -202,14 +202,16 @@ class GitService {
 
   // タスクIDとタイトルからブランチ名を生成
   generateBranchName(taskId: number, taskTitle: string): string;
-
-  // 文字列をブランチ名に適した形式にサニタイズ
-  sanitizeBranchName(text: string): string;
 }
 ```
 
+**実装の注意点**:
+- `generateBranchName()`内で`StringUtils.sanitizeForBranchName()`を使用してタイトルをサニタイズする
+- サニタイズ後のタイトルと`feature/task-{id}-{sanitized-title}`の形式でブランチ名を生成
+
 **依存関係**:
 - simple-git
+- StringUtils (src/utils/StringUtils.ts)
 
 ### 4. StorageService (src/services/StorageService.ts)
 
@@ -242,7 +244,77 @@ class StorageService {
 **依存関係**:
 - Node.js fs module
 
-### 5. UIFormatter (src/ui/UIFormatter.ts)
+**バックアップ戦略の詳細**:
+
+StorageService.backup()は、データファイルを破損から保護するために自動的に実行されます。
+
+**バックアップのタイミング**:
+- `save()`メソッドが呼ばれる前に必ず自動でバックアップを作成
+- 具体的には以下の操作時に実行される:
+  - タスク作成時 (TaskService.createTask)
+  - タスク更新時 (TaskService.updateTask)
+  - タスク削除時 (TaskService.deleteTask)
+  - ステータス変更時 (TaskService.changeStatus)
+
+**バックアップファイル**:
+- ファイル名: `.task/tasks.json.bak`
+- 形式: 既存の`tasks.json`の完全なコピー
+- 保持数: 最新の1世代のみ（上書き）
+
+**復元方法**:
+
+ユーザーが手動で復元する場合:
+```bash
+# macOS/Linux
+cp .task/tasks.json.bak .task/tasks.json
+
+# Windows (Git Bash)
+cp .task/tasks.json.bak .task/tasks.json
+
+# 復元後、確認
+task list
+```
+
+将来的な実装予定(P1):
+- `task restore` コマンドによる自動復元機能
+- 複数世代のバックアップ保持（タイムスタンプ付き）
+
+### 5. StringUtils (src/utils/StringUtils.ts)
+
+**責務**:
+- ブランチ名用の文字列サニタイズ
+- 将来的な文字列処理ユーティリティの拡張ポイント
+
+**インターフェース**:
+```typescript
+class StringUtils {
+  // ブランチ名に適した形式にサニタイズ
+  static sanitizeForBranchName(text: string): string;
+}
+```
+
+**実装の詳細**:
+`sanitizeForBranchName()`は以下の処理を行います:
+1. 小文字に変換
+2. 連続する空白を1つのハイフンに変換
+3. 英数字とハイフン以外の文字を削除
+4. 複数の連続するハイフンを1つにまとめる
+5. 先頭と末尾のハイフンを削除
+6. 最大長を50文字に制限
+7. 空文字列の場合は`"untitled"`を返す
+
+詳細な実装は「ブランチ名サニタイズの詳細」セクションを参照してください。
+
+**依存関係**:
+- なし（標準ライブラリのみ使用）
+
+**設計の意図**:
+- Git操作に依存しない純粋な文字列処理として実装
+- 単一責任原則: 文字列のサニタイズのみに特化
+- 再利用性: 将来的に他の用途（ファイル名など）でも利用可能
+- テスト容易性: 副作用のないstaticメソッドで実装
+
+### 6. UIFormatter (src/ui/UIFormatter.ts)
 
 **責務**:
 - タスク一覧をテーブル形式で整形
@@ -272,6 +344,56 @@ class UIFormatter {
 **依存関係**:
 - cli-table3
 - chalk
+- ColorScheme (src/ui/ColorScheme.ts)
+
+**設計の改善ポイント**:
+
+UIFormatterは現在、整形と色付けの両方を担当していますが、将来的に色のカスタマイズやテーマ機能を追加する際には、ColorSchemeクラスに色の管理を分離することを推奨します。
+
+**推奨される設計 (P1以降)**:
+```typescript
+// src/ui/ColorScheme.ts
+class ColorScheme {
+  // ステータスに対応する色を取得
+  getStatusColor(status: TaskStatus): ChalkFunction;
+
+  // 成功メッセージの色を取得
+  getSuccessColor(): ChalkFunction;
+
+  // エラーメッセージの色を取得
+  getErrorColor(): ChalkFunction;
+}
+
+// src/ui/UIFormatter.ts
+class UIFormatter {
+  constructor(private colorScheme: ColorScheme = new ColorScheme()) {}
+
+  formatStatus(status: TaskStatus): string {
+    const color = this.colorScheme.getStatusColor(status);
+    return color(status);
+  }
+
+  formatSuccess(message: string): string {
+    const color = this.colorScheme.getSuccessColor();
+    return color(message);
+  }
+
+  formatError(message: string): string {
+    const color = this.colorScheme.getErrorColor();
+    return color(message);
+  }
+}
+```
+
+**メリット**:
+- 単一責任原則: UIFormatterは整形、ColorSchemeは色の管理に特化
+- テスト容易性: ColorSchemeをモック化してUIFormatterをテスト可能
+- 拡張性: 将来的にユーザー設定ファイル(`.task/config.json`)からテーマを読み込み可能
+- 再利用性: 他のUIコンポーネントでもColorSchemeを利用可能
+
+**MVPでの実装**:
+- MVPではUIFormatter内に直接色を定義して実装
+- P1以降でColorSchemeクラスへのリファクタリングを検討
 
 ## ユースケース図
 
@@ -557,6 +679,79 @@ taskcli/
 - コマンド実行時間: 100ms以内
 - タスク一覧表示: 1000件でも1秒以内
 
+### パフォーマンステスト
+
+**測定環境**:
+- CPU: Intel Core i5 相当以上 (4コア以上推奨)
+- メモリ: 8GB以上
+- ストレージ: SSD
+- OS: Ubuntu 22.04 / macOS 13+ / Windows 11
+
+**測定方法**:
+
+```typescript
+// tests/performance/command-execution.test.ts
+import { describe, it, expect } from 'vitest';
+import { TaskCLI } from '../../src/cli/TaskCLI';
+
+describe('Performance Tests', () => {
+  it('should complete task add command within 100ms', async () => {
+    const cli = new TaskCLI();
+    const start = performance.now();
+    await cli.run(['add', 'Test Task']);
+    const end = performance.now();
+
+    const duration = end - start;
+    console.log(`task add: ${duration.toFixed(2)}ms`);
+    expect(duration).toBeLessThan(100);
+  });
+
+  it('should display 1000 tasks within 1 second', async () => {
+    // 1000件のテストデータを事前に準備
+    const cli = new TaskCLI();
+
+    const start = performance.now();
+    await cli.run(['list']);
+    const end = performance.now();
+
+    const duration = end - start;
+    console.log(`task list (1000 items): ${duration.toFixed(2)}ms`);
+    expect(duration).toBeLessThan(1000);
+  });
+
+  it('should complete task start command within 100ms', async () => {
+    const cli = new TaskCLI();
+
+    const start = performance.now();
+    await cli.run(['start', '1']);
+    const end = performance.now();
+
+    const duration = end - start;
+    console.log(`task start: ${duration.toFixed(2)}ms`);
+    expect(duration).toBeLessThan(100);
+  });
+});
+```
+
+**実行方法**:
+```bash
+# パフォーマンステストの実行
+npm run test:performance
+
+# CI/CDでの実行
+# 3回実行して平均値を測定し、目標値を20%上回る場合は警告
+```
+
+**測定タイミング**:
+- プルリクエスト作成時: CI/CDで自動実行
+- リリース前: 手動で詳細な測定を実施
+- パフォーマンス劣化が検出された場合: 原因調査と最適化
+
+**注意事項**:
+- 初回実行はNode.jsのJITコンパイルの影響で遅くなる場合があるため、ウォームアップ実行を含める
+- ファイルI/Oはストレージ速度に依存するため、SSD環境での測定を推奨
+- 測定結果は環境によって変動するため、複数回測定して平均値を使用
+
 ## セキュリティ考慮事項
 
 - **入力バリデーション**: すべてのユーザー入力をバリデーションし、不正な値を拒否
@@ -719,6 +914,8 @@ try {
 
 ### サニタイズルール
 
+**実装クラス**: `StringUtils.sanitizeForBranchName()` (src/utils/StringUtils.ts)
+
 **目的**: タスクタイトルをGitブランチ名として使える形式に変換する
 
 **変換ルール**:
@@ -729,39 +926,125 @@ try {
 5. 先頭と末尾のハイフンを削除
 6. 最大長を50文字に制限
 
-**実装例**:
+**実装**:
 ```typescript
-sanitizeBranchName(text: string): string {
-  return text
+// src/utils/StringUtils.ts
+static sanitizeForBranchName(text: string): string {
+  const sanitized = text
     .toLowerCase()                       // 小文字化
     .replace(/\s+/g, '-')                // スペース → ハイフン
     .replace(/[^a-z0-9-]/g, '')          // 英数字とハイフン以外を削除
     .replace(/-+/g, '-')                 // 連続ハイフン → 1つ
     .replace(/^-+|-+$/g, '')             // 先頭と末尾のハイフンを削除
     .substring(0, 50);                   // 最大50文字
+
+  return sanitized || 'untitled';        // 空文字列の場合はデフォルト値
 }
 ```
 
 **変換例**:
-- `"ユーザー認証機能の実装"` → `""` (日本語は削除される)
+- `"ユーザー認証機能の実装"` → `"untitled"` (日本語は削除され、デフォルト値)
 - `"Implement User Authentication"` → `"implement-user-authentication"`
 - `"Fix bug #123"` → `"fix-bug-123"`
 - `"Add  multiple   spaces"` → `"add-multiple-spaces"`
 
 **日本語タイトルの対応**:
 日本語タイトルの場合、サニタイズ後に空文字列になる可能性がある。
-その場合は、タスクIDのみを使用したブランチ名にフォールバック:
+`StringUtils.sanitizeForBranchName()`は空文字列の場合に`"untitled"`を返すため、
+`GitService.generateBranchName()`では以下のように実装:
 ```typescript
+// src/services/GitService.ts
 generateBranchName(taskId: number, taskTitle: string): string {
-  const sanitized = this.sanitizeBranchName(taskTitle);
-
-  if (sanitized.length === 0) {
-    return `feature/task-${taskId}`;
-  }
-
+  const sanitized = StringUtils.sanitizeForBranchName(taskTitle);
   return `feature/task-${taskId}-${sanitized}`;
 }
 ```
 
-**変換例（フォールバック）**:
-- タスクID: 1, タイトル: `"ユーザー認証機能の実装"` → `"feature/task-1"`
+**変換例（日本語タイトル）**:
+- タスクID: 1, タイトル: `"ユーザー認証機能の実装"` → `"feature/task-1-untitled"`
+
+### 日本語ブランチ名の対応改善（P1以降の検討事項）
+
+**現状の問題点**:
+- 日本語タイトルは完全に削除され、`untitled`になる
+- ブランチ名からタスク内容が判別できず、ユーザー体験が低下
+- GitおよびGitHubはUnicode文字（日本語）をサポートしているため、技術的な制約ではない
+
+**改善オプション**:
+
+**オプション1: ローマ字変換**
+```typescript
+// 外部ライブラリ（例: kuroshiro, hepburn）を使用
+import { romanize } from 'hepburn';
+
+static sanitizeForBranchName(text: string): string {
+  const romanized = romanize(text);  // "ユーザー認証" → "yuza ninsho"
+  const sanitized = romanized
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 50);
+
+  return sanitized || 'untitled';
+}
+
+// 変換例: "ユーザー認証機能の実装" → "feature/task-1-yuza-ninsho-kino-no-jisso"
+```
+
+**メリット**: ASCII文字のみで構成され、互換性が高い
+**デメリット**: 外部ライブラリの依存関係が増える、ローマ字表記が不自然な場合がある
+
+**オプション2: 日本語をそのまま許可**
+```typescript
+static sanitizeForBranchName(text: string): string {
+  const sanitized = text
+    .replace(/\s+/g, '-')
+    .replace(/[<>:"|?*\\\/]/g, '')  // ファイルシステムで禁止された文字のみ削除
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 50);
+
+  return sanitized || 'untitled';
+}
+
+// 変換例: "ユーザー認証機能の実装" → "feature/task-1-ユーザー認証機能の実装"
+```
+
+**メリット**: タスク内容が明確、実装がシンプル
+**デメリット**: 一部の古いツールで文字化けの可能性（GitHubは問題なし）
+
+**オプション3: 設定ファイルでカスタマイズ可能に（推奨）**
+```typescript
+// .task/config.json
+{
+  "branchNaming": {
+    "strategy": "romanize" | "unicode" | "ascii-only",
+    "maxLength": 50
+  }
+}
+
+// src/utils/StringUtils.ts
+class StringUtils {
+  static sanitizeForBranchName(text: string, config: BranchNamingConfig): string {
+    switch (config.strategy) {
+      case 'romanize':
+        return this.romanizeBranchName(text, config.maxLength);
+      case 'unicode':
+        return this.unicodeBranchName(text, config.maxLength);
+      case 'ascii-only':
+      default:
+        return this.asciiBranchName(text, config.maxLength);
+    }
+  }
+}
+```
+
+**メリット**: ユーザーが好みに応じて選択可能、将来的な拡張性が高い
+**デメリット**: 実装が複雑、設定管理が必要
+
+**推奨実装計画**:
+1. **MVP**: 現在の実装（ASCII only、日本語は削除）
+2. **P1**: オプション3の設定ファイル方式を実装、デフォルトは`ascii-only`
+3. **P2**: ローマ字変換（オプション1）をサポート追加

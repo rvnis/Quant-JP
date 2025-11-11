@@ -46,9 +46,10 @@ Grep('[機能に関連するキーワード]', 'src/')
 
 implementation-validatorサブエージェントを起動して品質検証。
 
-```
-@agent-implementation-validator [実装したファイルのパス]の品質を検証してください
-```
+Task toolを使用してimplementation-validatorサブエージェントを起動してください:
+- subagent_type: "implementation-validator"
+- description: "Implementation quality validation"
+- prompt: "[実装したファイルのパス]の品質を検証してください。コーディング規約、エラーハンドリング、テスト可能性、既存パターンとの整合性を確認してください。"
 
 ## ステップ7: テスト
 

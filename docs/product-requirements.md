@@ -316,7 +316,7 @@ task add --help
 ### クロスプラットフォーム対応
 - **対応OS**: macOS、Linux、Windows(Git Bash)で動作する
   - 測定方法: 各OSでのE2Eテストが全てパス
-- **Node.jsバージョン**: Node.js 18以上をサポート
+- **Node.jsバージョン**: Node.js v24.11.0 (LTS, 最小要件: 18+) をサポート
   - 測定方法: CI/CDで複数バージョンでテスト
 
 ## スコープ外
@@ -349,5 +349,5 @@ task add --help
 - Commander.jsを使用(学習コストが低く、機能が十分)
 
 ### 依存関係
-- Node.js 18以上を必須とする
+- Node.js v24.11.0 (LTS, 最小要件: 18+) を必須とする
 - npmでの配布を想定(`npm install -g taskcli`)
