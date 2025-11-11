@@ -316,21 +316,100 @@ const result = ids.map(id => taskMap.get(id));
 
 **原則**: 大規模PRは避け、分割する
 
-## 自動化の推進
+## 自動化の推進（該当する場合）
 
 ### 品質チェックの自動化
 
-**基本的な自動化項目**:
-- Lintチェック
-- 型チェック
-- テスト実行
-- ビルド確認
+**自動化項目と採用ツール**:
+
+1. **Lintチェック**
+   - **ESLint 9.x** + **@typescript-eslint**
+     - TypeScript専用ルールセットでコーディング規約を統一
+     - 潜在的なバグや非推奨パターンを自動検出
+     - 設定ファイル: `eslint.config.js` (Flat Config形式)
+
+2. **コードフォーマット**
+   - **Prettier 3.x**
+     - コードスタイルを自動整形し、レビュー時の議論を削減
+     - ESLintと併用し、`eslint-config-prettier`で競合を回避
+     - 設定ファイル: `.prettierrc`
+
+3. **型チェック**
+   - **TypeScript Compiler (tsc) 5.x**
+     - `tsc --noEmit`で型エラーのみをチェック
+     - ビルドとは独立して型安全性を検証
+     - 設定ファイル: `tsconfig.json`
+
+4. **テスト実行**
+   - **Vitest 2.x**
+     - Viteベースで高速起動・実行
+     - TypeScript/ESMをネイティブサポートし、設定不要で動作
+     - カバレッジ測定（@vitest/coverage-v8）が標準搭載
+     - モダンな開発体験とHMR対応
+
+5. **ビルド確認**
+   - **TypeScript Compiler (tsc)**
+     - 標準コンパイラで型チェック付きビルドを保証
+     - 追加ツール不要でシンプルな構成
+     - `tsconfig.json`で出力設定を一元管理
 
 **実装方法**:
-- CI/CDツール(GitHub Actions, GitLab CI等)
-- Pre-commit フック(Husky等)
 
-**理由**: 早い段階で問題を検出し、修正コストを削減
+**1. CI/CD (GitHub Actions)**
+```yaml
+# .github/workflows/ci.yml
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+```
+
+**2. Pre-commit フック (Husky 9.x + lint-staged)**
+```json
+// package.json
+{
+  "scripts": {
+    "prepare": "husky",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
+```
+```bash
+# .husky/pre-commit
+npm run lint-staged
+npm run typecheck
+```
+
+**導入効果**:
+- コミット前に自動チェックが走り、不具合コードの混入を防止
+- PR作成時に自動でCI実行され、マージ前に品質を担保
+- 早期発見により、修正コストを最大80%削減（バグ検出が本番後の場合と比較）
+
+**この構成を選んだ理由**:
+- 2025年時点でのTypeScriptエコシステムにおける標準的かつモダンな構成
+- ツール間の互換性が高く、設定の衝突が少ない
+- 開発体験と実行速度のバランスが優れている
 
 ## チェックリスト
 
