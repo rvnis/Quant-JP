@@ -10,11 +10,7 @@ allowed-tools: Read, Write
 
 ## テンプレートの参照
 
-リポジトリ構造定義書を作成する際は、以下のテンプレートを使用してください:
-
-```bash
-Read('.claude/skills/repository-structure/template.md')
-```
+リポジトリ構造定義書を作成する際は、次のテンプレートを使用してください: ./template.md
 
 ## リポジトリ構造定義書の構成要素
 
@@ -54,8 +50,4 @@ services/:
 
 ## 詳細ガイド
 
-さらに詳しい作成ガイドは以下を参照:
-
-```bash
-Read('.claude/skills/repository-structure/guide.md')
-```
+さらに詳しい作成ガイドは次のファイルを参照してください: ./guide.md

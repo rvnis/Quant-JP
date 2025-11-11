@@ -10,11 +10,7 @@ allowed-tools: Read, Write
 
 ## テンプレートの参照
 
-アーキテクチャ設計書を作成する際は、以下のテンプレートを使用してください:
-
-```bash
-Read('.claude/skills/architecture-design/template.md')
-```
+アーキテクチャ設計書を作成する際は、次のテンプレートを使用してください: ./template.md
 
 ## アーキテクチャ設計書の構成要素
 
@@ -52,8 +48,4 @@ UIレイヤー:
 
 ## 詳細ガイド
 
-さらに詳しい作成ガイドは以下を参照:
-
-```bash
-Read('.claude/skills/architecture-design/guide.md')
-```
+さらに詳しい作成ガイドは次のファイルを参照してください: ./guide.md

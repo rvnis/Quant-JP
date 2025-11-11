@@ -10,10 +10,7 @@ allowed-tools: Read, Write
 
 ## テンプレートの参照
 
-用語集を作成する際は、以下のテンプレートを使用してください:
-
-```bash
-Read('.claude/skills/glossary-creation/template.md')
+用語集を作成する際は、次のテンプレートを使用してください ./template.md
 ```
 
 ## 用語集の構成要素
@@ -64,8 +61,4 @@ Read('.claude/skills/glossary-creation/template.md')
 
 ## 詳細ガイド
 
-さらに詳しい作成ガイドは以下を参照:
-
-```bash
-Read('.claude/skills/glossary-creation/guide.md')
-```
+さらに詳しい作成ガイドは次のファイルを参照: ./guide.md

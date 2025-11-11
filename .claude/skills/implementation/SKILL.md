@@ -61,8 +61,5 @@ Read('.claude/skills/implementation/coding-standards.md')
 
 ## 詳細規約
 
-さらに詳しいコーディング規約は以下を参照:
-
-```bash
-Read('.claude/skills/implementation/coding-standards.md')
-```
+さらに詳しいコーディング規約は以下のファイルを参照:
+.claude/skills/implementation/coding-standards.md
