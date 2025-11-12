@@ -32,8 +32,8 @@ allowed-tools: Read, Write, Edit
    - このスキルのガイドより優先する
 
 2. **このスキルのガイド** - 参考資料
-   - implementation-guide.md: 汎用的なコーディング規約
-   - process-guide.md: 汎用的な開発プロセス
+   - ./guides/implementation.md: 汎用的なコーディング規約
+   - ./guides/process.md: 汎用的な開発プロセス
    - 既存ガイドラインがない場合、または補足として使用
 
 **新規作成時**: このスキルのガイドとテンプレートを参照
@@ -50,7 +50,7 @@ docs/development-guidelines.md
 ## クイックリファレンス
 
 ### コード実装時
-コード実装時のルールと規約: ./implementation-guide.md
+コード実装時のルールと規約: ./guides/implementation.md
 
 含まれる内容:
 - TypeScript/JavaScript規約
@@ -62,7 +62,7 @@ docs/development-guidelines.md
 - リファクタリング手法
 
 ### 開発プロセスの参照／策定時
-Git運用、テスト戦略、コードレビュー: ./process-guide.md
+Git運用、テスト戦略、コードレビュー: ./guides/process.md
 
 含まれる内容:
 - 基本原則（具体例の重要性、理由説明）
@@ -79,20 +79,20 @@ Git運用、テスト戦略、コードレビュー: ./process-guide.md
 ## 使用シーン別ガイド
 
 ### 新規開発時
-1. ./implementation-guide.md で命名規則・コーディング規約を確認
-2. ./process-guide.md でブランチ戦略・PR処理を確認
+1. ./guides/implementation.md で命名規則・コーディング規約を確認
+2. ./guides/process.md でブランチ戦略・PR処理を確認
 3. テストを先に書く（TDD）
 
 ### コードレビュー時
-- ./process-guide.md の「コードレビュープロセス」を参照
-- ./implementation-guide.md で規約違反がないか確認
+- ./guides/process.md の「コードレビュープロセス」を参照
+- ./guides/implementation.md で規約違反がないか確認
 
 ### テスト設計時
-- ./process-guide.md の「テスト戦略」（ピラミッド、カバレッジ）
-- ./implementation-guide.md の「テストコード」（実装パターン）
+- ./guides/process.md の「テスト戦略」（ピラミッド、カバレッジ）
+- ./guides/implementation.md の「テストコード」（実装パターン）
 
 ### リリース準備時
-- ./process-guide.md の「Git運用ルール」（main へのマージ方針）
+- ./guides/process.md の「Git運用ルール」（main へのマージ方針）
 - コミットメッセージが Conventional Commits に従っているか確認
 
 ## チェックリスト

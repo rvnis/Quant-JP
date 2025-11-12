@@ -42,3 +42,5 @@ coverage/
 
 # Lock files (keep package-lock.json for consistency)
 # yarn.lock
+
+.claude/settings.local.json
