@@ -1,7 +1,7 @@
 {
-  "name": "Quants-JP",
+  "name": "Quant-JP",
   "image": "mcr.microsoft.com/devcontainers/base:bookworm",
-  "workspaceFolder": "/workspaces/Quants-JP",
+  "workspaceFolder": "/workspaces/Quant-JP",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
