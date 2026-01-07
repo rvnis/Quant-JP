@@ -1,7 +1,7 @@
 {
-  "name": "claude-code-book-chapter8",
+  "name": "Quants-JP",
   "image": "mcr.microsoft.com/devcontainers/base:bookworm",
-  "workspaceFolder": "/workspaces/claude-code-book-chapter8",
+  "workspaceFolder": "/workspaces/Quants-JP",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
